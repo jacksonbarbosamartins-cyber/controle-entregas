@@ -28,6 +28,8 @@ def criar_tabela():
     conn.close()
 
 def adicionar_entrega(numero, cliente, valor, forma_pagamento, troco):
+    if troco is None:
+        troco = 0.0
     conn = sqlite3.connect("entregas.db")
     c = conn.cursor()
     c.execute(
@@ -61,20 +63,24 @@ def limpar_banco():
     conn.commit()
     conn.close()
 
-# Criar tabela no banco
-criar_tabela()
+# ================================
+# EXECUÇÃO INICIAL
+# ================================
+criar_tabela()  # cria tabela no banco
+df_banco = carregar_entregas()
 
 # ================================
 # INTERFACE
 # ================================
+try:
+    st.image("cupim_logo.png", width=250)
+except:
+    st.write("📌 Logo não encontrada.")
 
-# Logo
-st.image("cupim_logo.png", width=250)  # Salve sua logo com o texto atualizado na mesma pasta
-st.markdown("<h5 style='text-align:center;'>seu melhor laser em família desde 2005</h5>", unsafe_allow_html=True)
+st.markdown("<h5 style='text-align:center;'>seu melhor lazer em família desde 2005</h5>", unsafe_allow_html=True)
 st.title("📦 Controle de Saída de Entrega - Comércio")
 
 # Descobrir número atual
-df_banco = carregar_entregas()
 if df_banco.empty:
     numero_atual = 1
 else:
@@ -90,7 +96,7 @@ with st.form("form_entrega"):
     valor = st.number_input("Valor da Compra (R$)", min_value=0.0, step=0.01, format="%.2f")
     forma_pagamento = st.selectbox("Forma de Pagamento", ["Dinheiro", "Cartão", "Pix", "Outro"])
     
-    troco = None
+    troco = 0.0
     if forma_pagamento == "Dinheiro":
         pago = st.number_input("Valor pago pelo cliente (R$)", min_value=0.0, step=0.01, format="%.2f")
         troco = pago - valor
@@ -105,7 +111,7 @@ if adicionar:
     if cliente.strip():
         adicionar_entrega(numero_atual, cliente, valor, forma_pagamento, troco)
         st.success("Pedido adicionado à lista!")
-        st.experimental_rerun()
+        st.rerun()
     else:
         st.error("Digite o nome do cliente antes de salvar.")
 
@@ -122,8 +128,8 @@ if not df.empty:
     if filtro.strip():
         df = df[df.apply(lambda row: 
                          filtro.lower() in str(row['numero']).lower() 
-                         or (row['cliente'] and filtro.lower() in row['cliente'].lower())
-                         or (row['entregador'] and filtro.lower() in row['entregador'].lower()), axis=1)]
+                         or filtro.lower() in str(row['cliente'] or "").lower()
+                         or filtro.lower() in str(row['entregador'] or "").lower(), axis=1)]
 
     for _, entrega in df.iterrows():
         if entrega["entregue"] == 1:
@@ -151,7 +157,7 @@ if not df.empty:
                 if entregador_input.strip():
                     atualizar_entrega(entrega["numero"], entregador_input)
                     st.success(f"Entrega #{entrega['numero']} marcada como concluída!")
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error("Digite o nome do entregador antes de confirmar.")
 
@@ -173,6 +179,7 @@ if not df.empty:
     # Limpar tudo
     if st.button("🗑️ Limpar Lista"):
         limpar_banco()
-        st.experimental_rerun()
-     
+        st.rerun()
+
    
+
